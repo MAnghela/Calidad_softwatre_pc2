@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - ERP Retail Control{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="mb-0">Dashboard</h1>
+    <small class="text-muted">Vista ejecutiva de movimientos y estado del negocio</small>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+      ● En vivo (auto-sincronizado)
+    </span>
+    <button class="btn btn-outline-primary btn-sm" onclick="location.reload();">
+      🔄 Actualizar ahora
+    </button>
+  </div>
+</div>
+
+<!-- Tarjetas de Métricas Principales -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <span>Total Ventas</span>
+    <strong class="text-success">${{ '%.2f'|format(total_sales) }}</strong>
+    <small class="text-muted d-block mt-1">{{ recent_sales|length }} ventas recientes</small>
+  </div>
+  <div class="stat-card">
+    <span>Total Compras</span>
+    <strong class="text-danger">${{ '%.2f'|format(total_purchases) }}</strong>
+    <small class="text-muted d-block mt-1">{{ recent_purchases|length }} compras recientes</small>
+  </div>
+  <div class="stat-card">
+    <span>Balance Operativo</span>
+    <strong class="{{ 'text-primary' if balance >= 0 else 'text-danger' }}">${{ '%.2f'|format(balance) }}</strong>
+    <small class="text-muted d-block mt-1">Margen (Ventas - Compras)</small>
+  </div>
+  <div class="stat-card">
+    <span>Alertas de Stock Bajo</span>
+    <strong class="{{ 'text-danger' if low_stock|length > 0 else 'text-muted' }}">{{ low_stock|length }}</strong>
+    <small class="text-muted d-block mt-1">{{ 'Requiere reposición' if low_stock|length > 0 else 'Stock en rango óptimo' }}</small>
+  </div>
+</div>
+
+<!-- Actividad Reciente (Ventas y Compras) -->
+<div class="two-columns mb-4">
+  <section class="panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0">Últimas Salidas (Ventas)</h2>
+      <a href="{{ url_for('main.sales') }}" class="btn btn-sm btn-link p-0 text-decoration-none">Ver todas →</a>
+    </div>
+    {% if recent_sales %}
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for sale in recent_sales %}
+            <tr>
+              <td><small>{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+              <td>{{ sale.client.name }} {{ sale.client.surname }}</td>
+              <td class="fw-bold text-success">${{ '%.2f'|format(sale.total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted my-3">No hay ventas registradas aún.</p>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h5 mb-0">Últimas Entradas (Compras)</h2>
+      <a href="{{ url_for('main.purchases') }}" class="btn btn-sm btn-link p-0 text-decoration-none">Ver todas →</a>
+    </div>
+    {% if recent_purchases %}
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for purchase in recent_purchases %}
+            <tr>
+              <td><small>{{ purchase.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+              <td>{{ purchase.supplier.name }}</td>
+              <td class="fw-bold text-danger">${{ '%.2f'|format(purchase.total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted my-3">No hay compras registradas aún.</p>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Inventario Crítico -->
+<section class="panel mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="h5 mb-0 text-danger">⚠️ Inventario Crítico (Stock Mínimo o Agotado)</h2>
+    <a href="{{ url_for('main.products') }}" class="btn btn-sm btn-link p-0 text-decoration-none">Catálogo completo →</a>
+  </div>
+  {% if low_stock %}
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Producto</th>
+          <th>Categoría</th>
+          <th>Stock Actual</th>
+          <th>Stock Mínimo</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in low_stock %}
+          <tr>
+            <td><code>{{ product.sku }}</code></td>
+            <td><strong>{{ product.name }}</strong></td>
+            <td>{{ product.category }}</td>
+            <td class="text-danger fw-bold">{{ product.stock }}</td>
+            <td>{{ product.stock_min }}</td>
+            <td>
+              {% if product.stock == 0 %}
+                <span class="badge bg-danger">Agotado</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Stock Bajo</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-success my-2">✓ Todos los productos cuentan con inventario suficiente por encima del stock mínimo.</p>
+  {% endif %}
+</section>
+
+<!-- Script de auto-actualización automática -->
+<script>
+  // 1. Recargar automáticamente cuando el usuario regresa a esta pestaña del navegador
+  window.addEventListener('focus', function() {
+    location.reload();
+  });
+
+  // 2. Intervalo periódico de sincronización automática cada 15 segundos
+  setInterval(function() {
+    location.reload();
+  }, 15000);
+</script>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Clientes{% endblock %}
+{% block content %}
+<h1>Clientes</h1>
+<div class="two-columns">
+  <section class="panel">
+    <h2>Registrar cliente</h2>
+    <form method="post">
+      <label>Nombre</label>
+      <input type="text" name="name" required placeholder="Ej. Carlos">
+
+      <label>Apellido</label>
+      <input type="text" name="surname" placeholder="Ej. Mendoza">
+
+      <label>Documento / DNI</label>
+      <input type="text" name="document" required placeholder="Ej. 10234567">
+
+      <label>Teléfono</label>
+      <input type="text" name="phone" placeholder="Ej. 998877665">
+
+      <label>Email</label>
+      <input type="email" name="email" placeholder="Ej. cliente@email.com">
+
+      <label>Dirección</label>
+      <input type="text" name="address" placeholder="Ej. Av. Los Próceres 123">
+
+      <button type="submit">Guardar cliente</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Listado de clientes</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Nombre</th>
+          <th>Teléfono</th>
+          <th>Email</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for client in clients %}
+          <tr>
+            <td>{{ client.document }}</td>
+            <td>{{ client.name }} {{ client.surname }}</td>
+            <td>{{ client.phone or '-' }}</td>
+            <td>{{ client.email or '-' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}
+

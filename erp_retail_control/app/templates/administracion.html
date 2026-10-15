@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% block title %}Módulo Administración - ERP Retail Control{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="mb-0">⚙️ Módulo de Administración</h1>
+    <small class="text-muted">Gestión de compras corporativas, ventas de la empresa y pagos al personal</small>
+  </div>
+  <button class="btn btn-outline-primary btn-sm" onclick="location.reload();">
+    🔄 Actualizar datos
+  </button>
+</div>
+
+<!-- Métricas de Administración -->
+<div class="stats-grid mb-4">
+  <div class="stat-card">
+    <span>Total Ventas de la Empresa</span>
+    <strong class="text-success">${{ '%.2f'|format(total_sales) }}</strong>
+    <small class="text-muted d-block mt-1">{{ sales|length }} ventas registradas</small>
+  </div>
+  <div class="stat-card">
+    <span>Total Compras a Proveedores</span>
+    <strong class="text-danger">${{ '%.2f'|format(total_purchases) }}</strong>
+    <small class="text-muted d-block mt-1">{{ purchases|length }} compras de abastecimiento</small>
+  </div>
+  <div class="stat-card">
+    <span>Total Pagos de Personal</span>
+    <strong class="text-primary">${{ '%.2f'|format(total_payroll) }}</strong>
+    <small class="text-muted d-block mt-1">{{ payments|length }} recibos de haberes</small>
+  </div>
+</div>
+
+<!-- Sección 1: Compras de la Empresa -->
+<div class="two-columns mb-4">
+  <section class="panel">
+    <h2 class="h5 mb-3 text-danger">📥 Registrar Compra de la Empresa (Abastecimiento)</h2>
+    <form method="post">
+      <input type="hidden" name="action" value="compra">
+
+      <label class="form-label mb-1">Proveedor</label>
+      <select name="supplier_id" required class="form-select mb-2">
+        <option value="">-- Seleccionar proveedor --</option>
+        {% for supplier in suppliers %}
+          <option value="{{ supplier.id }}">{{ supplier.name }} (RUC: {{ supplier.ruc or 'S/N' }})</option>
+        {% endfor %}
+      </select>
+
+      <label class="form-label mb-1">Producto</label>
+      <select name="product_id" id="buy_product_id" required class="form-select mb-2" onchange="onBuyProductChange()">
+        <option value="" data-stock="0" data-price="0">-- Seleccionar producto --</option>
+        {% for product in products %}
+          <option value="{{ product.id }}" data-stock="{{ product.stock }}" data-price="{{ product.price_buy }}">
+            {{ product.name }} (Stock en almacén: {{ product.stock }})
+          </option>
+        {% endfor %}
+      </select>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label mb-1">Cantidad</label>
+          <input type="number" name="quantity" value="1" min="1" required class="form-control mb-2">
+        </div>
+        <div class="col-6">
+          <label class="form-label mb-1">Costo Unitario ($)</label>
+          <input type="number" step="0.01" name="unit_price" id="buy_unit_price" value="0.00" min="0.01" required class="form-control mb-2">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-danger w-100 mt-2 fw-bold">
+        Guardar Compra e Incrementar Stock
+      </button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2 class="h5 mb-3 text-success">📤 Registrar Venta de la Empresa</h2>
+    <form method="post">
+      <input type="hidden" name="action" value="venta">
+
+      <label class="form-label mb-1">Cliente</label>
+      <select name="client_id" required class="form-select mb-2">
+        <option value="">-- Seleccionar cliente --</option>
+        {% for client in clients %}
+          <option value="{{ client.id }}">{{ client.name }} (DNI: {{ client.document }})</option>
+        {% endfor %}
+      </select>
+
+      <label class="form-label mb-1">Producto</label>
+      <select name="product_id" id="sell_product_id" required class="form-select mb-2" onchange="onSellProductChange()">
+        <option value="" data-stock="0" data-price="0">-- Seleccionar producto --</option>
+        {% for product in products %}
+          <option value="{{ product.id }}" data-stock="{{ product.stock }}" data-price="{{ product.price_sell }}">
+            {{ product.name }} (Stock disponible: {{ product.stock }})
+          </option>
+        {% endfor %}
+      </select>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label mb-1">Cantidad</label>
+          <input type="number" name="quantity" value="1" min="1" required class="form-control mb-2">
+        </div>
+        <div class="col-6">
+          <label class="form-label mb-1">Precio Unitario ($)</label>
+          <input type="number" step="0.01" name="unit_price" id="sell_unit_price" value="0.00" min="0.01" required class="form-control mb-2">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100 mt-2 fw-bold">
+        Guardar Venta y Descontar Stock
+      </button>
+    </form>
+  </section>
+</div>
+
+<!-- Sección 2: Pagos del Personal (Nómina) -->
+<section class="panel mb-4 border-primary">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0 text-primary">💼 Registrar Pago del Personal (Sueldos y Nómina)</h2>
+    <span class="badge bg-primary">Área de Recursos Humanos / Administración</span>
+  </div>
+
+  <form method="post" class="row g-2">
+    <input type="hidden" name="action" value="pago_personal">
+
+    <div class="col-md-3">
+      <label class="form-label mb-1">Nombre del Colaborador</label>
+      <input type="text" name="employee_name" required placeholder="Ej. Roberto Quispe" class="form-control">
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">DNI del Empleado</label>
+      <input type="text" name="dni" placeholder="Ej. 40123456" class="form-control">
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label mb-1">Cargo / Puesto</label>
+      <input type="text" name="position" placeholder="Ej. Almacenero, Cajero" class="form-control">
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">Monto Pagado ($)</label>
+      <input type="number" step="0.01" name="amount" min="1" required placeholder="0.00" class="form-control">
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label mb-1">Concepto</label>
+      <input type="text" name="concept" placeholder="Sueldo Octubre" class="form-control">
+    </div>
+
+    <div class="col-12 mt-3">
+      <button type="submit" class="btn btn-primary px-4 fw-bold">
+        💳 Registrar Pago de Sueldo
+      </button>
+    </div>
+  </form>
+</section>
+
+<!-- Tablas de Historial en Administración -->
+<div class="row">
+  <div class="col-lg-6 mb-4">
+    <section class="panel h-100">
+      <h3 class="h6 fw-bold text-dark border-bottom pb-2">📋 Historial de Pagos de Personal</h3>
+      {% if payments %}
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Colaborador</th>
+              <th>Cargo</th>
+              <th>Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for pay in payments %}
+              <tr>
+                <td><small>{{ pay.payment_date.strftime('%Y-%m-%d') }}</small></td>
+                <td><strong>{{ pay.employee_name }}</strong></td>
+                <td><small class="text-muted">{{ pay.position or 'Personal' }}</small></td>
+                <td class="fw-bold text-primary">${{ '%.2f'|format(pay.amount) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted my-3">No hay pagos de personal registrados.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-6 mb-4">
+    <section class="panel h-100">
+      <h3 class="h6 fw-bold text-dark border-bottom pb-2">📊 Historial de Compras de Abastecimiento</h3>
+      {% if purchases %}
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Proveedor</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for purchase in purchases[:6] %}
+              <tr>
+                <td><small>{{ purchase.created_at.strftime('%Y-%m-%d') }}</small></td>
+                <td>{{ purchase.supplier.name }}</td>
+                <td class="fw-bold text-danger">${{ '%.2f'|format(purchase.total) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="text-muted my-3">No hay compras registradas.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<script>
+  function onBuyProductChange() {
+    const sel = document.getElementById('buy_product_id');
+    const opt = sel.options[sel.selectedIndex];
+    const price = parseFloat(opt.getAttribute('data-price') || '0');
+    if (price > 0) {
+      document.getElementById('buy_unit_price').value = price.toFixed(2);
+    }
+  }
+
+  function onSellProductChange() {
+    const sel = document.getElementById('sell_product_id');
+    const opt = sel.options[sel.selectedIndex];
+    const price = parseFloat(opt.getAttribute('data-price') || '0');
+    if (price > 0) {
+      document.getElementById('sell_unit_price').value = price.toFixed(2);
+    }
+  }
+
+  window.addEventListener('focus', function() {
+    location.reload();
+  });
+</script>
+{% endblock %}
+

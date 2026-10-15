@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Iniciar Sesión - ERP Retail Control{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6 col-lg-5 mb-4">
+    <!-- Opción 1: Acceso a la Tienda (Clientes) -->
+    <div class="panel border-primary border-2 shadow-sm">
+      <div class="text-center mb-3">
+        <span class="badge bg-primary px-3 py-2 fs-6">🛒 Clientes - Tienda Virtual</span>
+        <h2 class="h4 mt-2">Acceso a la Tienda</h2>
+        <p class="text-muted small">Solo necesitas tu celular, nombre y DNI para comprar.</p>
+      </div>
+
+      <form method="post" action="{{ url_for('main.login') }}">
+        <input type="hidden" name="login_type" value="client">
+
+        <label class="form-label mb-1">Nombre Completo</label>
+        <input type="text" name="client_name" required placeholder="Ej. Juan Pérez" class="form-control mb-2">
+
+        <label class="form-label mb-1">Número de DNI</label>
+        <input type="text" name="client_document" required placeholder="Ej. 72345678" class="form-control mb-2">
+
+        <label class="form-label mb-1">Número de Celular</label>
+        <input type="tel" name="client_phone" required placeholder="Ej. 987654321" class="form-control mb-3">
+
+        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+          🛍️ Entrar a la Tienda como Cliente
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="col-md-6 col-lg-5 mb-4">
+    <!-- Opción 2: Acceso de Personal / Áreas Administrativas -->
+    <div class="panel border shadow-sm">
+      <div class="text-center mb-3">
+        <span class="badge bg-dark px-3 py-2 fs-6">🔒 Áreas Internas</span>
+        <h2 class="h4 mt-2">Acceso de Personal</h2>
+        <p class="text-muted small">Cuentas independientes para Administración, Almacén y Contabilidad.</p>
+      </div>
+
+      <form method="post" action="{{ url_for('main.login') }}">
+        <input type="hidden" name="login_type" value="staff">
+
+        <label class="form-label mb-1">Usuario</label>
+        <input type="text" name="username" required placeholder="admin / almacen / conta" class="form-control mb-2">
+
+        <label class="form-label mb-1">Contraseña</label>
+        <input type="password" name="password" required class="form-control mb-3">
+
+        <button type="submit" class="btn btn-dark w-100 py-2 fw-bold">
+          🔑 Iniciar Sesión en el Módulo
+        </button>
+      </form>
+
+      <div class="mt-4 p-3 bg-light rounded border">
+        <small class="fw-bold d-block text-dark mb-1">Credenciales según área:</small>
+        <ul class="list-unstyled small mb-0">
+          <li>⚙️ <strong>Administración:</strong> <code>admin</code> / <code>admin123</code></li>
+          <li>📦 <strong>Almacén:</strong> <code>almacen</code> / <code>almacen123</code></li>
+          <li>💰 <strong>Contabilidad:</strong> <code>conta</code> / <code>conta123</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

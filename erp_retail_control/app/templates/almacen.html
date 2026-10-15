@@ -1,0 +1,175 @@
+{% extends 'base.html' %}
+{% block title %}Módulo Almacén - ERP Retail Control{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="mb-0">📦 Módulo de Almacén</h1>
+    <small class="text-muted">Control de existencias, alertas de reposición y catálogo de productos</small>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+      ● Stock Sincronizado en Tiempo Real
+    </span>
+    <button class="btn btn-outline-primary btn-sm" onclick="location.reload();">
+      🔄 Refrescar inventario
+    </button>
+  </div>
+</div>
+
+<!-- Métricas de Almacén -->
+<div class="stats-grid mb-4">
+  <div class="stat-card">
+    <span>Unidades Totales en Custodia</span>
+    <strong class="text-primary">{{ total_units }}</strong>
+    <small class="text-muted d-block mt-1">Suma física en estantes</small>
+  </div>
+  <div class="stat-card">
+    <span>Productos en Catálogo</span>
+    <strong class="text-dark">{{ products|length }}</strong>
+    <small class="text-muted d-block mt-1">Líneas registradas</small>
+  </div>
+  <div class="stat-card">
+    <span>Alertas de Stock Bajo / Crítico</span>
+    <strong class="{{ 'text-danger' if low_stock|length > 0 else 'text-muted' }}">{{ low_stock|length }}</strong>
+    <small class="text-muted d-block mt-1">{{ 'Requiere orden de compra' if low_stock|length > 0 else 'Inventario suficiente' }}</small>
+  </div>
+</div>
+
+<!-- Alerta de Stock Crítico -->
+{% if low_stock %}
+  <div class="alert alert-warning border-warning shadow-sm mb-4">
+    <h3 class="h6 fw-bold mb-2 text-danger">⚠️ Atención: Productos con Stock Mínimo o Agotado</h3>
+    <p class="small mb-2">Los siguientes productos han alcanzado o descendido por debajo del límite de seguridad. Informar a Administración para emitir órdenes de compra:</p>
+    <div class="table-responsive">
+      <table class="table table-sm table-bordered bg-white mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>SKU</th>
+            <th>Producto</th>
+            <th>Stock Actual</th>
+            <th>Stock Mínimo</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in low_stock %}
+            <tr>
+              <td><code>{{ p.sku }}</code></td>
+              <td><strong>{{ p.name }}</strong></td>
+              <td class="fw-bold text-danger">{{ p.stock }} unidades</td>
+              <td>{{ p.stock_min }} unidades</td>
+              <td>
+                {% if p.stock == 0 %}
+                  <span class="badge bg-danger">Agotado</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">Stock Bajo</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+
+<div class="two-columns mb-4">
+  <!-- Registro de Nuevo Producto -->
+  <section class="panel">
+    <h2 class="h5 mb-3 text-primary">➕ Registrar Nuevo Producto en Almacén</h2>
+    <form method="post">
+      <input type="hidden" name="action" value="nuevo_producto">
+
+      <label class="form-label mb-1">Código SKU</label>
+      <input type="text" name="sku" required placeholder="Ej. HER-009" class="form-control mb-2">
+
+      <label class="form-label mb-1">Nombre del Producto</label>
+      <input type="text" name="name" required placeholder="Ej. Llave Inglesa 10 Pulgadas" class="form-control mb-2">
+
+      <label class="form-label mb-1">Categoría</label>
+      <input type="text" name="category" required placeholder="Ej. Herramientas Manuales" class="form-control mb-2">
+
+      <label class="form-label mb-1">Descripción</label>
+      <textarea name="description" placeholder="Especificaciones físicas o de ubicación en estantería..." class="form-control mb-2" rows="2"></textarea>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label mb-1">Costo Compra ($)</label>
+          <input type="number" step="0.01" min="0" name="price_buy" value="0.00" class="form-control mb-2">
+        </div>
+        <div class="col-6">
+          <label class="form-label mb-1">Precio Venta ($)</label>
+          <input type="number" step="0.01" min="0" name="price_sell" value="0.00" class="form-control mb-2">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-6">
+          <label class="form-label mb-1">Stock Inicial</label>
+          <input type="number" name="stock" value="0" min="0" class="form-control mb-2">
+        </div>
+        <div class="col-6">
+          <label class="form-label mb-1">Stock Mínimo</label>
+          <input type="number" name="stock_min" value="5" min="0" class="form-control mb-2">
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100 mt-2 fw-bold">Guardar en Catálogo de Almacén</button>
+    </form>
+  </section>
+
+  <!-- Control de Stock en Tiempo Real -->
+  <section class="panel">
+    <h2 class="h5 mb-3 text-dark">📋 Inventario y Existencias Físicas</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>SKU</th>
+          <th>Producto</th>
+          <th>Stock Físico</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+          <tr>
+            <td><code>{{ product.sku }}</code></td>
+            <td>
+              <strong>{{ product.name }}</strong>
+              <small class="d-block text-muted">{{ product.category }}</small>
+            </td>
+            <td class="fw-bold {{ 'text-danger' if product.stock <= product.stock_min else 'text-dark' }}">
+              {{ product.stock }} un.
+            </td>
+            <td>
+              {% if product.stock == 0 %}
+                <span class="badge bg-danger">Agotado</span>
+              {% elif product.stock <= product.stock_min %}
+                <span class="badge bg-warning text-dark">Stock Bajo</span>
+              {% else %}
+                <span class="badge bg-success">Óptimo</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+
+<script>
+  window.addEventListener('focus', function() {
+    const skuInput = document.querySelector('input[name="sku"]');
+    if (!skuInput || !skuInput.value) {
+      location.reload();
+    }
+  });
+
+  setInterval(function() {
+    const skuInput = document.querySelector('input[name="sku"]');
+    if (!skuInput || !skuInput.value) {
+      location.reload();
+    }
+  }, 15000);
+</script>
+{% endblock %}

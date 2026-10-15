@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% block title %}Módulo Contabilidad - ERP Retail Control{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="mb-0">💰 Módulo de Contabilidad</h1>
+    <small class="text-muted">Balance financiero general, control de ingresos (ventas) y egresos (compras y sueldos)</small>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+      ● Flujo de Caja en Tiempo Real
+    </span>
+    <button class="btn btn-outline-primary btn-sm" onclick="location.reload();">
+      🔄 Actualizar balance
+    </button>
+  </div>
+</div>
+
+<!-- Tarjetas de Resumen Financiero -->
+<div class="stats-grid mb-4">
+  <div class="stat-card border-start border-success border-4">
+    <span>Total Ingresos (Ventas)</span>
+    <strong class="text-success">${{ '%.2f'|format(total_ingresos) }}</strong>
+    <small class="text-muted d-block mt-1">
+      Tienda: ${{ '%.2f'|format(tienda_ingresos) }} | Empresa: ${{ '%.2f'|format(admin_ingresos) }}
+    </small>
+  </div>
+
+  <div class="stat-card border-start border-danger border-4">
+    <span>Total Egresos (Gastos)</span>
+    <strong class="text-danger">${{ '%.2f'|format(total_egresos) }}</strong>
+    <small class="text-muted d-block mt-1">
+      Compras: ${{ '%.2f'|format(total_compras) }} | Sueldos: ${{ '%.2f'|format(total_sueldos) }}
+    </small>
+  </div>
+
+  <div class="stat-card border-start border-primary border-4">
+    <span>Balance Neto Operativo</span>
+    <strong class="{{ 'text-primary' if balance_neto >= 0 else 'text-danger' }}">
+      ${{ '%.2f'|format(balance_neto) }}
+    </strong>
+    <small class="text-muted d-block mt-1">
+      {{ 'Superávit / Utilidad' if balance_neto >= 0 else 'Déficit' }} (Ingresos - Egresos)
+    </small>
+  </div>
+</div>
+
+<!-- Sección 1: Libro de Ingresos -->
+<section class="panel mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="h5 mb-0 text-success">📈 Libro de Ingresos (Cobros por Ventas)</h2>
+    <span class="badge bg-success">{{ sales|length }} transacciones</span>
+  </div>
+
+  {% if sales %}
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Fecha y Hora</th>
+          <th>Cliente</th>
+          <th>Canal de Venta</th>
+          <th>Total Ingresado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for sale in sales %}
+          <tr>
+            <td><code>#{{ sale.id }}</code></td>
+            <td><small>{{ sale.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+            <td>
+              <strong>{{ sale.client.name }}</strong>
+              <small class="text-muted d-block">Doc: {{ sale.client.document }}</small>
+            </td>
+            <td>
+              {% if sale.origin == 'tienda' %}
+                <span class="badge bg-primary">🛍️ Tienda Virtual</span>
+              {% else %}
+                <span class="badge bg-secondary">🏢 Venta Corporativa</span>
+              {% endif %}
+            </td>
+            <td class="fw-bold text-success fs-6">${{ '%.2f'|format(sale.total) }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-muted my-3">No hay ingresos registrados en el sistema.</p>
+  {% endif %}
+</section>
+
+<!-- Sección 2: Libro de Egresos -->
+<div class="two-columns mb-4">
+  <!-- Egresos por Compras -->
+  <section class="panel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h6 fw-bold mb-0 text-danger">📦 Egresos: Compras de Mercadería</h2>
+      <span class="badge bg-light text-dark">${{ '%.2f'|format(total_compras) }}</span>
+    </div>
+
+    {% if purchases %}
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in purchases %}
+            <tr>
+              <td><small>{{ p.created_at.strftime('%Y-%m-%d') }}</small></td>
+              <td>{{ p.supplier.name }}</td>
+              <td class="fw-bold text-danger">${{ '%.2f'|format(p.total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted my-3">No hay compras registradas.</p>
+    {% endif %}
+  </section>
+
+  <!-- Egresos por Pagos de Personal -->
+  <section class="panel">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h6 fw-bold mb-0 text-danger">💼 Egresos: Pagos de Personal (Sueldos)</h2>
+      <span class="badge bg-light text-dark">${{ '%.2f'|format(total_sueldos) }}</span>
+    </div>
+
+    {% if payroll %}
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Colaborador</th>
+            <th>Concepto</th>
+            <th>Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pay in payroll %}
+            <tr>
+              <td><small>{{ pay.payment_date.strftime('%Y-%m-%d') }}</small></td>
+              <td>
+                <strong>{{ pay.employee_name }}</strong>
+                <small class="d-block text-muted">{{ pay.position or 'Personal' }}</small>
+              </td>
+              <td><small>{{ pay.concept }}</small></td>
+              <td class="fw-bold text-danger">${{ '%.2f'|format(pay.amount) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted my-3">No hay pagos de personal registrados.</p>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+  window.addEventListener('focus', function() {
+    location.reload();
+  });
+  setInterval(function() {
+    location.reload();
+  }, 15000);
+</script>
+{% endblock %}
+

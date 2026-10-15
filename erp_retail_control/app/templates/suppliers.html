@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block title %}Proveedores{% endblock %}
+{% block content %}
+<h1>Proveedores</h1>
+<div class="two-columns">
+  <section class="panel">
+    <h2>Registrar proveedor</h2>
+    <form method="post">
+      <label>Razón social / Nombre</label>
+      <input type="text" name="name" required placeholder="Ej. Distribuidora Ferretera S.A.C.">
+
+      <label>RUC / Documento</label>
+      <input type="text" name="ruc" placeholder="Ej. 20100011122">
+
+      <label>Contacto</label>
+      <input type="text" name="contact" placeholder="Ej. Juan Pérez">
+
+      <label>Teléfono</label>
+      <input type="text" name="phone" placeholder="Ej. 987654321">
+
+      <label>Email</label>
+      <input type="email" name="email" placeholder="Ej. ventas@proveedor.com">
+
+      <label>Dirección</label>
+      <input type="text" name="address" placeholder="Ej. Jr. Comercio 456">
+
+      <button type="submit">Guardar proveedor</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Listado de proveedores</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>RUC</th>
+          <th>Nombre</th>
+          <th>Contacto</th>
+          <th>Teléfono</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for supplier in suppliers %}
+          <tr>
+            <td>{{ supplier.ruc or '-' }}</td>
+            <td>{{ supplier.name }}</td>
+            <td>{{ supplier.contact or '-' }}</td>
+            <td>{{ supplier.phone or '-' }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}
+

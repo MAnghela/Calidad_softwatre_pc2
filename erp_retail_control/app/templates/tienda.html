@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+{% block title %}Tienda Virtual - RetailControl{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="mb-0">🛍️ Tienda Virtual</h1>
+    <small class="text-muted">Catálogo de productos disponibles con stock en tiempo real para clientes</small>
+  </div>
+  <div>
+    {% if session.get('client_id') %}
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#carritoCompras" aria-label="Ver carrito, {{ cart_quantity }} productos">
+          🛒 Carrito <span class="badge bg-light text-dark">{{ cart_quantity }}</span>
+        </button>
+        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#historialCompras">
+          📦 Mis compras{% if sales %} ({{ sales|length }}){% endif %}
+        </button>
+      </div>
+    {% else %}
+      <span class="badge bg-secondary p-2">Modo Visitante (Identifícate abajo para comprar)</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Banner de Identificación de Cliente si no ha iniciado sesión -->
+{% if not session.get('client_id') %}
+  <div class="panel border-primary mb-4 bg-white shadow-sm">
+    <div class="row align-items-center">
+      <div class="col-md-4">
+        <h2 class="h5 text-primary mb-1">👋 Identifícate para Comprar</h2>
+        <p class="small text-muted mb-0">Identifícate con tu celular, nombre y DNI para agregar productos al carrito y finalizar tu pedido.</p>
+      </div>
+      <div class="col-md-8">
+        <form method="post" action="{{ url_for('main.tienda_login') }}" class="row g-2 align-items-center">
+          <div class="col-sm-4">
+            <input type="text" name="client_name" required placeholder="Tu Nombre Completo" class="form-control form-control-sm">
+          </div>
+          <div class="col-sm-3">
+            <input type="text" name="client_document" required placeholder="Tu DNI" class="form-control form-control-sm">
+          </div>
+          <div class="col-sm-3">
+            <input type="tel" name="client_phone" required placeholder="Tu Celular" class="form-control form-control-sm">
+          </div>
+          <div class="col-sm-2">
+            <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Entrar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-success d-flex justify-content-between align-items-center mb-4 py-2">
+    <div>
+      🎉 Comprando como: <strong>{{ session.get('client_name') }}</strong> (DNI: {{ session.get('client_doc') }})
+    </div>
+    <a href="{{ url_for('main.logout') }}" class="btn btn-sm btn-outline-secondary py-0">Cambiar de cliente</a>
+  </div>
+{% endif %}
+
+{% if session.get('client_id') %}
+  <div class="modal fade" id="historialCompras" tabindex="-1" aria-labelledby="historialComprasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title fs-5" id="historialComprasLabel">🛒 Mis compras</h2>
+            <small class="text-muted">Pedidos realizados por {{ client.name }}</small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          {% if sales %}
+            {% for sale in sales %}
+              <section class="border rounded p-3 mb-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                  <div>
+                    <strong>Pedido #{{ sale.id }}</strong>
+                    <small class="text-muted ms-2">{{ sale.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
+                  </div>
+                  <span class="fw-bold text-success">Total: ${{ '%.2f'|format(sale.total) }}</span>
+                </div>
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-2">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio unitario</th>
+                        <th>Subtotal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for item in sale.items %}
+                        <tr>
+                          <td>{{ item.product.name }}</td>
+                          <td>{{ item.quantity }}</td>
+                          <td>${{ '%.2f'|format(item.unit_price) }}</td>
+                          <td>${{ '%.2f'|format(item.subtotal) }}</td>
+                        </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            {% endfor %}
+          {% else %}
+            <div class="text-center py-4">
+              <div class="fs-1 mb-2">🛒</div>
+              <h3 class="h6">Aún no has realizado compras</h3>
+              <p class="text-muted mb-0">Tus pedidos confirmados aparecerán aquí.</p>
+            </div>
+          {% endif %}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+{% if session.get('client_id') %}
+  <div class="modal fade" id="carritoCompras" tabindex="-1" aria-labelledby="carritoComprasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div>
+            <h2 class="modal-title fs-5" id="carritoComprasLabel">🛒 Tu carrito</h2>
+            <small class="text-muted">Revisa los productos antes de confirmar el pedido.</small>
+          </div>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        {% if cart_items %}
+          <div class="modal-body">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Precio unitario</th>
+                    <th>Subtotal</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in cart_items %}
+                    <tr>
+                      <td>{{ item.product.name }}</td>
+                      <td>{{ item.quantity }}</td>
+                      <td>${{ '%.2f'|format(item.product.price_sell) }}</td>
+                      <td class="fw-bold">${{ '%.2f'|format(item.subtotal) }}</td>
+                      <td class="text-end">
+                        <form method="post" action="{{ url_for('main.tienda_quitar_del_carrito', product_id=item.product.id) }}" class="row g-0 justify-content-end">
+                          <button type="submit" class="btn btn-outline-danger btn-sm">Quitar</button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colspan="3" class="text-end">Total</th>
+                    <th>${{ '%.2f'|format(cart_total) }}</th>
+                    <th></th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+            <p class="small text-muted mt-3 mb-0">Al confirmar, el pedido se guardará en tu historial y en ventas/contabilidad, y se actualizará el inventario.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Seguir comprando</button>
+            <form method="post" action="{{ url_for('main.tienda_finalizar_compra') }}" class="row g-0">
+              <button type="submit" class="btn btn-primary fw-bold">Confirmar compra · ${{ '%.2f'|format(cart_total) }}</button>
+            </form>
+          </div>
+        {% else %}
+          <div class="modal-body text-center py-5">
+            <div class="fs-1 mb-2">🛒</div>
+            <h3 class="h6">Tu carrito está vacío</h3>
+            <p class="text-muted mb-0">Agrega productos del catálogo y aparecerán aquí.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Seguir comprando</button>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<!-- Catálogo de Productos en la Tienda -->
+<h2 class="h4 mb-3">Catálogo Disponible</h2>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4 mb-5">
+  {% for product in products %}
+    <div class="col">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body d-flex flex-column">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="badge bg-light text-dark border">{{ product.category }}</span>
+            {% if product.stock > 0 %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                En stock: {{ product.stock }} unidades
+              </span>
+            {% else %}
+              <span class="badge bg-danger">Agotado</span>
+            {% endif %}
+          </div>
+
+          <h3 class="h5 card-title text-dark fw-bold mb-1">{{ product.name }}</h3>
+          <p class="text-muted small mb-2"><code>SKU: {{ product.sku }}</code></p>
+          <p class="card-text text-secondary small flex-grow-1">
+            {{ product.description or 'Producto garantizado de alta calidad para ferretería y hogar.' }}
+          </p>
+
+          <div class="my-3">
+            <span class="text-muted small">Precio Unitario:</span>
+            <div class="h3 fw-bold text-success mb-0">${{ '%.2f'|format(product.price_sell) }}</div>
+          </div>
+
+          <!-- Agregar producto al carrito -->
+          <form method="post" action="{{ url_for('main.tienda_comprar') }}" class="border-top pt-3">
+            <input type="hidden" name="product_id" value="{{ product.id }}">
+            <div class="d-flex gap-2 align-items-center">
+              <div style="width: 100px;">
+                <input type="number" name="quantity" value="1" min="1" max="{{ product.stock - cart_quantities.get(product.id, 0) }}"
+                       class="form-control text-center" {{ 'disabled' if product.stock <= cart_quantities.get(product.id, 0) else '' }}>
+              </div>
+              <button type="submit" class="btn btn-primary flex-grow-1 fw-bold"
+                      {{ 'disabled' if not session.get('client_id') or product.stock <= cart_quantities.get(product.id, 0) else '' }}>
+                {% if not session.get('client_id') %}
+                  Identifícate para agregar
+                {% elif product.stock <= cart_quantities.get(product.id, 0) %}
+                  Máximo disponible agregado
+                {% else %}
+                  Agregar al carrito
+                {% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="col-12">
+      <div class="alert alert-info">Actualmente no hay productos registrados en el catálogo.</div>
+    </div>
+  {% endfor %}
+</div>
+
+  <script>
+  window.addEventListener('focus', function() {
+    location.reload();
+  });
+</script>
+{% endblock %}

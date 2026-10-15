@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% block title %}Entradas (Compras) - ERP Retail Control{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="mb-0">Entradas (Compras)</h1>
+    <small class="text-muted">Recepción de mercadería de proveedores e incremento automático de stock</small>
+  </div>
+  <button class="btn btn-outline-primary btn-sm" onclick="location.reload();">
+    🔄 Refrescar datos
+  </button>
+</div>
+
+<div class="two-columns">
+  <section class="panel">
+    <h2>Registrar compra</h2>
+    <form method="post" id="purchase_form">
+      <label>Proveedor</label>
+      <select name="supplier_id" required>
+        <option value="">-- Seleccionar proveedor --</option>
+        {% for supplier in suppliers %}
+          <option value="{{ supplier.id }}">{{ supplier.name }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Producto a ingresar</label>
+      <select name="product_id" id="product_id" required onchange="onProductChange()">
+        <option value="" data-stock="0" data-price="0">-- Seleccionar producto --</option>
+        {% for product in products %}
+          <option value="{{ product.id }}" data-stock="{{ product.stock }}" data-price="{{ product.price_buy }}">
+            {{ product.name }} (Stock actual: {{ product.stock }})
+          </option>
+        {% endfor %}
+      </select>
+
+      <!-- Indicador visual interactivo de stock -->
+      <div id="stock_info_box" class="alert alert-info py-2 px-3 my-2" style="display: none;">
+        📦 <strong>Stock actual en almacén:</strong> <span id="lbl_current_stock" class="fw-bold">0</span> unidades<br>
+        ➔ <strong>Stock proyectado tras compra:</strong> <span id="lbl_projected_stock" class="fw-bold text-success">0</span> unidades
+      </div>
+
+      <label>Cantidad a comprar</label>
+      <input type="number" name="quantity" id="quantity" value="1" min="1" required oninput="recalcProjectedStock()">
+
+      <label>Costo unitario de compra ($)</label>
+      <input type="number" step="0.01" name="unit_price" id="unit_price" value="0.00" min="0.01" required>
+
+      <button type="submit" class="mt-2">Guardar compra y actualizar stock</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <h2>Historial de compras</h2>
+    {% if purchases %}
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Proveedor</th>
+            <th>Detalle</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for purchase in purchases %}
+            <tr>
+              <td><small>{{ purchase.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+              <td>{{ purchase.supplier.name }}</td>
+              <td>
+                {% for item in purchase.items %}
+                  <div>
+                    <strong>{{ item.product.name }}</strong> (x{{ item.quantity }})
+                    <br><small class="text-muted">Stock actual: {{ item.product.stock }}</small>
+                  </div>
+                {% else %}
+                  <span class="text-muted">Detalle no disponible</span>
+                {% endfor %}
+              </td>
+              <td class="fw-bold text-danger">${{ '%.2f'|format(purchase.total) }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="text-muted my-3">No hay compras registradas en el sistema.</p>
+    {% endif %}
+  </section>
+</div>
+
+<script>
+  function onProductChange() {
+    const sel = document.getElementById('product_id');
+    const opt = sel.options[sel.selectedIndex];
+    const stock = parseInt(opt.getAttribute('data-stock') || '0');
+    const price = parseFloat(opt.getAttribute('data-price') || '0');
+    const priceInput = document.getElementById('unit_price');
+    const box = document.getElementById('stock_info_box');
+
+    if (sel.value) {
+      box.style.display = 'block';
+      if (price > 0 && (priceInput.value === '0.00' || priceInput.value === '0' || !priceInput.value)) {
+        priceInput.value = price.toFixed(2);
+      }
+      recalcProjectedStock();
+    } else {
+      box.style.display = 'none';
+    }
+  }
+
+  function recalcProjectedStock() {
+    const sel = document.getElementById('product_id');
+    const opt = sel.options[sel.selectedIndex];
+    const stock = parseInt(opt.getAttribute('data-stock') || '0');
+    const qty = parseInt(document.getElementById('quantity').value || '0');
+    document.getElementById('lbl_current_stock').innerText = stock;
+    document.getElementById('lbl_projected_stock').innerText = (stock + (qty > 0 ? qty : 0));
+  }
+
+  // Auto-actualizar si el usuario regresa de otra pestaña y no ha modificado el formulario
+  window.addEventListener('focus', function() {
+    const sel = document.getElementById('product_id');
+    if (!sel || !sel.value) {
+      location.reload();
+    }
+  });
+
+  // Ejecutar al cargar la página si ya viene preseleccionado
+  window.addEventListener('DOMContentLoaded', onProductChange);
+</script>
+{% endblock %}
